@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EchoDrop: Blind Battle Royale</title>
+    <style>
+      :root {
+        --bg: #071421;
+        --panel: #0d1d2c;
+        --panel-alt: #112838;
+        --accent: #52d7ff;
+        --accent-2: #80ffca;
+        --danger: #ff5d6c;
+        --warning: #ffd166;
+        --success: #7ef29a;
+        --text: #ecf8ff;
+        --muted: #a8c0cd;
+        --shadow: rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: radial-gradient(circle at top, #15314a 0%, #071421 50%, #050d16 100%);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        padding: 18px;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .app {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      .titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        padding: 12px 18px;
+        background: rgba(12, 28, 39, 0.76);
+        border: 1px solid rgba(82, 215, 255, 0.35);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px var(--shadow);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.5rem, 2vw, 2.5rem);
+        letter-spacing: 0.04em;
+      }
+
+      .tag {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(82, 215, 255, 0.12);
+        border: 1px solid rgba(82, 215, 255, 0.4);
+        color: var(--accent-2);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 320px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        background: rgba(13, 28, 42, 0.9);
+        border: 1px solid rgba(130, 176, 206, 0.25);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px var(--shadow);
+        padding: 16px;
+      }
+
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 1.05rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button, input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: 11px;
+        background: linear-gradient(180deg, rgba(82, 215, 255, 0.2), rgba(82, 215, 255, 0.08));
+        color: var(--text);
+        padding: 10px 12px;
+        transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 8px 18px rgba(82, 215, 255, 0.08);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(82, 215, 255, 0.6);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button.primary {
+        background: linear-gradient(180deg, rgba(126, 242, 154, 0.28), rgba(126, 242, 154, 0.1));
+        border-color: rgba(126, 242, 154, 0.6);
+      }
+
+      button.warn {
+        background: linear-gradient(180deg, rgba(255, 93, 108, 0.22), rgba(255, 93, 108, 0.08));
+        border-color: rgba(255, 93, 108, 0.5);
+      }
+
+      input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(168, 192, 205, 0.25);
+        border-radius: 10px;
+        color: var(--text);
+        padding: 10px 12px;
+        margin-top: 8px;
+      }
+
+      .field {
+        margin-bottom: 12px;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .lobby-status {
+        min-height: 36px;
+        margin-top: 10px;
+        color: var(--accent-2);
+        font-weight: 700;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .stat {
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 10px;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.2rem;
+      }
+
+      .arena-wrap {
+        position: relative;
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid rgba(82, 215, 255, 0.35);
+        background: rgba(9, 20, 29, 0.82);
+        box-shadow: 0 22px 40px rgba(0, 0, 0, 0.4);
+      }
+
+      canvas {
+        width: 100%;
+        height: 620px;
+        display: block;
+        background: linear-gradient(180deg, rgba(13, 33, 43, 0.9), rgba(5, 15, 22, 1));
+      }
+
+      .feed {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 0.95rem;
+      }
+
+      .feed li {
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .feed li strong {
+        color: var(--accent-2);
+      }
+
+      ul.help {
+        margin: 0;
+        padding-left: 18px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      @media (max-width: 1100px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        canvas {
+          height: 440px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sr-only" aria-live="polite" aria-atomic="true" id="screenReaderOutput"></div>
+
+    <div class="app">
+      <div class="titlebar">
+        <h1>EchoDrop</h1>
+        <div class="tag">Blind Accessible Battle Royale</div>
+      </div>
+
+      <div class="shell">
+        <aside class="panel" aria-label="Lobby and status panel">
+          <h2>Lobby</h2>
+
+          <div class="field">
+            <label for="playerName">Player name</label>
+            <input id="playerName" type="text" value="Viper" maxlength="18" />
+          </div>
+
+          <div class="button-row">
+            <button id="createLobbyBtn" class="primary">Create Lobby</button>
+            <button id="joinLobbyBtn">Join Lobby</button>
+          </div>
+
+          <div class="field" style="margin-top: 12px;">
+            <label for="joinCodeInput">Lobby code</label>
+            <input id="joinCodeInput" type="text" maxlength="8" value="ECHO42" aria-label="Join code" />
+          </div>
+
+          <div class="button-row">
+            <button id="startMatchBtn" class="primary">Start Match</button>
+            <button id="toggleVoiceBtn">Toggle Voice Chat</button>
+          </div>
+
+          <div id="lobbyStatus" class="lobby-status" aria-live="polite">Offline. No lobby active.</div>
+
+          <div class="stats" aria-label="Match statistics">
+            <div class="stat">
+              <span>Health</span>
+              <strong id="healthStat">100</strong>
+            </div>
+            <div class="stat">
+              <span>Shield</span>
+              <strong id="shieldStat">0</strong>
+            </div>
+            <div class="stat">
+              <span>Ammo</span>
+              <strong id="ammoStat">36</strong>
+            </div>
+            <div class="stat">
+              <span>Zone</span>
+              <strong id="zoneStat">100%</strong>
+            </div>
+          </div>
+        </aside>
+
+        <main class="arena-wrap">
+          <canvas id="gameCanvas" width="960" height="620" aria-label="Battle arena map" role="img"></canvas>
+        </main>
+
+        <aside class="panel" aria-label="Feed and controls panel">
+          <h2>Commander Feed</h2>
+          <ul id="feed" class="feed" aria-live="polite"></ul>
+
+          <div style="margin-top: 16px;">
+            <h2>Controls</h2>
+            <ul class="help">
+              <li>Move: WASD or arrow keys</li>
+              <li>Shoot: Space</li>
+              <li>Loot: E near a crate</li>
+              <li>Scan: M for nearest danger</li>
+              <li>Callout: Q for AI narration</li>
+              <li>Voice: V to toggle voice chat</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const screenReaderOutput = document.getElementById('screenReaderOutput');
+      const lobbyStatus = document.getElementById('lobbyStatus');
+      const feed = document.getElementById('feed');
+      const healthStat = document.getElementById('healthStat');
+      const shieldStat = document.getElementById('shieldStat');
+      const ammoStat = document.getElementById('ammoStat');
+      const zoneStat = document.getElementById('zoneStat');
+
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const speech = window.speechSynthesis;
+
+      const state = {
+        running: false,
+        lobbyCode: 'ECHO42',
+        voiceEnabled: false,
+        mapWidth: 2000,
+        mapHeight: 2000,
+        zone: {
+          x: 1000,
+          y: 1000,
+          radius: 760,
+          shrinkRate: 0.75,
+          minRadius: 150,
+          tick: 0,
+        },
+        frame: 0,
+        lastTimestamp: 0,
+        time: 0,
+        bots: [],
+        loot: [],
+        bullets: [],
+        particles: [],
+        winner: null,
+      };
+
+      const input = {
+        left: false,
+        right: false,
+        up: false,
+        down: false,
+        shoot: false,
+      };
+
+      const player = {
+        x: 1000,
+        y: 1000,
+        r: 14,
+        speed: 3.3,
+        hp: 100,
+        shield: 0,
+        ammo: 36,
+        fireCooldown: 0,
+        alive: true,
+        name: 'Viper',
+        kills: 0,
+        hasVoice: true,
+      };
+
+      function addFeed(text, type = 'normal') {
+        const item = document.createElement('li');
+        const stamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        item.innerHTML = `<strong>[${stamp}]</strong> ${text}`;
+        feed.prepend(item);
+        while (feed.children.length > 8) {
+          feed.removeChild(feed.lastChild);
+        }
+      }
+
+      function announce(text) {
+        screenReaderOutput.textContent = text;
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 1.1;
+          utterance.pitch = 1.1;
+          utterance.volume = 1;
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      function ensureAudio() {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      function playTone(frequency, duration = 0.12, type = 'sine', volume = 0.06) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = frequency;
+        gain.gain.value = volume;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+      }
+
+      function playThreatTone(distance) {
+        const normalized = Math.max(0, 1 - distance / 420);
+        playTone(150 + normalized * 350, 0.08, 'sawtooth', 0.05 + normalized * 0.06);
+      }
+
+      function playLootTone() {
+        [440, 660, 820].forEach((freq, i) => setTimeout(() => playTone(freq, 0.08, 'triangle', 0.04), i * 45));
+      }
+
+      function playHitTone() {
+        playTone(120, 0.11, 'square', 0.05);
+      }
+
+      function playWinTone() {
+        [440, 560, 700, 900].forEach((freq, i) => setTimeout(() => playTone(freq, 0.13, 'triangle', 0.06), i * 90));
+      }
+
+      function randomBetween(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function createBot(index) {
+        return {
+          id: index,
+          x: randomBetween(150, state.mapWidth - 150),
+          y: randomBetween(150, state.mapHeight - 150),
+          r: 12,
+          hp: 52,
+          speed: randomBetween(1.5, 2.5),
+          alive: true,
+          name: ['Mara', 'Rift', 'Hex', 'Nova', 'Kite', 'Brute'][index % 6],
+          color: ['#ff8a5b', '#f4d35e', '#7ef29a', '#8ecae6', '#c77dff', '#ffd6a5'][index % 6],
+          cooldown: randomBetween(0.6, 1.6),
+        };
+      }
+
+      function generateLoot() {
+        const items = [];
+        for (let i = 0; i < 26; i += 1) {
+          items.push({
+            id: i,
+            x: randomBetween(90, state.mapWidth - 90),
+            y: randomBetween(90, state.mapHeight - 90),
+            type: ['ammo', 'medkit', 'shield'][i % 3],
+            r: 9,
+          });
+        }
+        return items;
+      }
+
+      function createLobby() {
+        ensureAudio();
+        state.lobbyCode = Math.random().toString(36).slice(2, 7).toUpperCase();
+        lobbyStatus.textContent = `Lobby created: ${state.lobbyCode}. Squad is ready for drop.`;
+        addFeed(`Lobby created. Code <strong>${state.lobbyCode}</strong>. Match ready.`, 'lobby');
+        announce(`Lobby created. Code ${state.lobbyCode}. Squad ready for drop.`);
+        if (state.voiceEnabled) {
+          addFeed('Voice channel live. Teammate interception online.', 'voice');
+        }
+      }
+
+      function joinLobby() {
+        ensureAudio();
+        const code = document.getElementById('joinCodeInput').value.trim().toUpperCase() || 'ECHO42';
+        state.lobbyCode = code;
+        lobbyStatus.textContent = `Joined lobby ${state.lobbyCode}. Secure channel established.`;
+        addFeed(`Joined lobby <strong>${state.lobbyCode}</strong>. Secure channel established.`, 'lobby');
+        announce(`Joined lobby ${state.lobbyCode}. Secure channel established.`);
+      }
+
+      function updateHUD() {
+        healthStat.textContent = Math.max(0, Math.round(player.hp));
+        shieldStat.textContent = Math.round(player.shield);
+        ammoStat.textContent = Math.max(0, Math.round(player.ammo));
+        const zonePercent = Math.max(0, (state.zone.radius / 760) * 100);
+        zoneStat.textContent = `${Math.round(zonePercent)}%`;
+      }
+
+      function spawnBots(count = 8) {
+        state.bots = Array.from({ length: count }, (_, i) => createBot(i));
+      }
+
+      function resetMatch() {
+        state.running = true;
+        state.frame = 0;
+        state.time = 0;
+        player.x = 1000;
+        player.y = 1000;
+        player.hp = 100;
+        player.shield = 0;
+        player.ammo = 36;
+        player.fireCooldown = 0;
+        player.alive = true;
+        player.kills = 0;
+        state.zone.x = 1000;
+        state.zone.y = 1000;
+        state.zone.radius = 760;
+        state.zone.tick = 0;
+        state.winner = null;
+        spawnBots(9);
+        state.loot = generateLoot();
+        state.bullets = [];
+        state.particles = [];
+        addFeed('Drop sequence initialized. Hot zone detected. Stay mobile.', 'system');
+        announce('Match started. Drop sequence initialized. Hot zone detected. Stay mobile.');
+        updateHUD();
+      }
+
+      function movePlayer() {
+        let dx = 0;
+        let dy = 0;
+        if (input.left) dx -= 1;
+        if (input.right) dx += 1;
+        if (input.up) dy -= 1;
+        if (input.down) dy += 1;
+
+        if (dx !== 0 || dy !== 0) {
+          const length = Math.hypot(dx, dy) || 1;
+          dx /= length;
+          dy /= length;
+
+          player.x += dx * player.speed;
+          player.y += dy * player.speed;
+          player.x = clamp(player.x, 18, state.mapWidth - 18);
+          player.y = clamp(player.y, 18, state.mapHeight - 18);
+        }
+      }
+
+      function handleLootCollection() {
+        for (const item of state.loot) {
+          const dist = Math.hypot(player.x - item.x, player.y - item.y);
+          if (dist < player.r + item.r + 12) {
+            if (item.type === 'ammo') {
+              player.ammo += 12;
+              addFeed('Ammo cache secured. Magazine topped off.', 'loot');
+              announce('Ammo cache secured');
+              playLootTone();
+            }
+            if (item.type === 'medkit') {
+              player.hp = clamp(player.hp + 28, 0, 100);
+              addFeed('Medkit used. Vital signs recovering.', 'loot');
+              announce('Medkit used');
+              playLootTone();
+            }
+            if (item.type === 'shield') {
+              player.shield += 20;
+              addFeed('Shield boost recovered. Protection increased.', 'loot');
+              announce('Shield boost recovered');
+              playLootTone();
+            }
+            item.collected = true;
+          }
+        }
+        state.loot = state.loot.filter(item => !item.collected);
+      }
+
+      function fireBullet() {
+        if (!player.alive || player.ammo <= 0 || player.fireCooldown > 0) return;
+        player.ammo -= 1;
+        player.fireCooldown = 0.18;
+        const target = getNearestThreat();
+        let dirX = 0;
+        let dirY = 0;
+        if (target) {
+          dirX = target.x - player.x;
+          dirY = target.y - player.y;
+          const len = Math.hypot(dirX, dirY) || 1;
+          dirX /= len;
+          dirY /= len;
+        } else {
+          const aim = { x: player.x + 1, y: player.y - 1 };
+          dirX = aim.x - player.x;
+          dirY = aim.y - player.y;
+          const len = Math.hypot(dirX, dirY) || 1;
+          dirX /= len;
+          dirY /= len;
+        }
+
+        state.bullets.push({
+          x: player.x,
+          y: player.y,
+          dx: dirX * 9,
+          dy: dirY * 9,
+          life: 1.8,
+          owner: 'player',
+          radius: 2.5,
+        });
+        playTone(480, 0.05, 'square', 0.04);
+      }
+
+      function getNearestThreat() {
+        let closest = null;
+        let minDistance = Infinity;
+        for (const bot of state.bots) {
+          if (!bot.alive) continue;
+          const dist = Math.hypot(bot.x - player.x, bot.y - player.y);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closest = bot;
+          }
+        }
+        return closest;
+      }
+
+      function botAI() {
+        for (const bot of state.bots) {
+          if (!bot.alive) continue;
+          const dx = player.x - bot.x;
+          const dy = player.y - bot.y;
+          const distance = Math.hypot(dx, dy) || 1;
+
+          if (distance < 260) {
+            bot.x += (dx / distance) * bot.speed;
+            bot.y += (dy / distance) * bot.speed;
+            bot.cooldown -= 0.016;
+            if (distance < 60 && bot.cooldown <= 0) {
+              bot.cooldown = randomBetween(0.8, 1.5);
+              const damage = 10 + Math.random() * 12;
+              let absorbed = Math.min(player.shield, damage);
+              player.shield -= absorbed;
+              player.hp -= damage - absorbed;
+              playHitTone();
+              addFeed(`${bot.name} hit you for ${Math.round(damage)} damage.`, 'danger');
+              if (state.voiceEnabled) {
+                announce(`${bot.name} engaged. Take cover.`);
+              }
+              if (player.hp <= 0) {
+                player.hp = 0;
+                player.alive = false;
+                addFeed('You were eliminated. The match is lost.', 'danger');
+                announce('You were eliminated. The match is lost.');
+              }
+            }
+          } else {
+            bot.x += Math.cos(state.time * 0.4 + bot.id) * 0.35;
+            bot.y += Math.sin(state.time * 0.6 + bot.id) * 0.35;
+          }
+        }
+      }
+
+      function updateBullets() {
+        for (const bullet of state.bullets) {
+          bullet.x += bullet.dx;
+          bullet.y += bullet.dy;
+          bullet.life -= 0.016;
+
+          for (const bot of state.bots) {
+            if (!bot.alive) continue;
+            const dist = Math.hypot(bullet.x - bot.x, bullet.y - bot.y);
+            if (dist < bullet.radius + bot.r) {
+              bullet.life = 0;
+              bot.hp -= 25;
+              if (bot.hp <= 0) {
+                bot.alive = false;
+                player.kills += 1;
+                addFeed(`Enemy down: ${bot.name}.`, 'success');
+                announce(`Enemy down. ${bot.name} eliminated.`);
+                for (let i = 0; i < 18; i += 1) {
+                  state.particles.push({
+                    x: bot.x,
+                    y: bot.y,
+                    vx: randomBetween(-2, 2),
+                    vy: randomBetween(-2, 2),
+                    life: 24,
+                    color: '#8ef0c4',
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        state.bullets = state.bullets.filter(bullet => bullet.life > 0 && bullet.x > 0 && bullet.x < state.mapWidth && bullet.y > 0 && bullet.y < state.mapHeight);
+      }
+
+      function updateParticles() {
+        for (const particle of state.particles) {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.life -= 1;
+        }
+        state.particles = state.particles.filter(p => p.life > 0);
+      }
+
+      function updateZone() {
+        state.zone.tick += 1;
+        if (state.zone.tick % 60 === 0) {
+          state.zone.radius = Math.max(state.zone.minRadius, state.zone.radius - state.zone.shrinkRate * 20);
+          addFeed(`Outer zone collapsing. New radius: ${Math.round(state.zone.radius)}m.`, 'system');
+          announce('Zone collapsing. Adjust your position.');
+        }
+
+        const dx = player.x - state.zone.x;
+        const dy = player.y - state.zone.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > state.zone.radius - 16) {
+          player.hp -= 0.7;
+          playThreatTone(dist - state.zone.radius);
+          if (player.hp <= 0) {
+            player.hp = 0;
+            player.alive = false;
+            addFeed('Toxic storm claimed you. You are out.', 'danger');
+            announce('Toxic storm claimed you. You are out.');
+          }
+        }
+      }
+
+      function checkWinner() {
+        const livingBots = state.bots.filter(bot => bot.alive).length;
+        if (player.alive && livingBots === 0) {
+          state.winner = 'player';
+          state.running = false;
+          addFeed('Winner winner. The arena is yours.', 'success');
+          announce('Winner winner. Arena is yours.');
+          playWinTone();
+        }
+
+        if (!player.alive && livingBots > 0) {
+          state.running = false;
+          addFeed('Eliminated. Better luck in the next drop.', 'danger');
+          announce('Eliminated. Better luck in the next drop.');
+        }
+      }
+
+      function nearestDangerPrompt() {
+        let closest = null;
+        let minDist = Infinity;
+        for (const bot of state.bots) {
+          if (!bot.alive) continue;
+          const dist = Math.hypot(bot.x - player.x, bot.y - player.y);
+          if (dist < minDist) {
+            minDist = dist;
+            closest = bot;
+          }
+        }
+        if (!closest) {
+          announce('No visible hostiles. Sector clear.');
+          addFeed('No visible hostiles. Sector clear.', 'success');
+          return;
+        }
+        const bearing = Math.atan2(closest.y - player.y, closest.x - player.x);
+        const angle = ((bearing * 180) / Math.PI + 360) % 360;
+        announce(`Threat direction ${Math.round(angle)} degrees, distance ${Math.round(minDist)} meters.`);
+        addFeed(`Threat direction ${Math.round(angle)} degrees, distance ${Math.round(minDist)} meters.`, 'danger');
+      }
+
+      function updateAIAnnouncer() {
+        if (state.running) {
+          const threat = getNearestThreat();
+          if (threat) {
+            const distance = Math.hypot(threat.x - player.x, threat.y - player.y);
+            if (distance < 180) {
+              announce(`Enemy in close proximity. Distance ${Math.round(distance)} meters.`);
+            }
+          }
+        }
+      }
+
+      function update(dt) {
+        if (!state.running) return;
+
+        state.time += dt;
+        state.frame += 1;
+        player.fireCooldown = Math.max(0, player.fireCooldown - dt);
+
+        movePlayer();
+        handleLootCollection();
+        botAI();
+        updateBullets();
+        updateParticles();
+        updateZone();
+        checkWinner();
+        updateHUD();
+
+        if (state.frame % 240 === 0) {
+          updateAIAnnouncer();
+        }
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = '#081922';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const cameraX = clamp(player.x - canvas.width / 2, 0, state.mapWidth - canvas.width);
+        const cameraY = clamp(player.y - canvas.height / 2, 0, state.mapHeight - canvas.height);
+
+        ctx.save();
+        ctx.translate(-cameraX, -cameraY);
+
+        for (let x = 0; x < state.mapWidth; x += 50) {
+          ctx.strokeStyle = 'rgba(154, 188, 205, 0.08)';
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, state.mapHeight);
+          ctx.stroke();
+        }
+        for (let y = 0; y < state.mapHeight; y += 50) {
+          ctx.strokeStyle = 'rgba(154, 188, 205, 0.08)';
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(state.mapWidth, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(116, 214, 255, 0.32)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(state.zone.x, state.zone.y, state.zone.radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(82, 215, 255, 0.08)';
+        ctx.beginPath();
+        ctx.arc(state.zone.x, state.zone.y, state.zone.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (const item of state.loot) {
+          ctx.fillStyle = item.type === 'ammo' ? '#ffd166' : item.type === 'medkit' ? '#7ef29a' : '#52d7ff';
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        for (const bot of state.bots) {
+          if (!bot.alive) continue;
+          ctx.fillStyle = bot.color;
+          ctx.beginPath();
+          ctx.arc(bot.x, bot.y, bot.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.fillRect(bot.x - 16, bot.y - 22, 32, 6);
+          ctx.fillStyle = '#7ef29a';
+          ctx.fillRect(bot.x - 16, bot.y - 22, (bot.hp / 52) * 32, 6);
+        }
+
+        if (player.alive) {
+          ctx.fillStyle = '#fffdff';
+          ctx.beginPath();
+          ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.fillRect(player.x - 16, player.y - 22, 32, 6);
+          ctx.fillStyle = '#52d7ff';
+          ctx.fillRect(player.x - 16, player.y - 22, (player.hp / 100) * 32, 6);
+        }
+
+        for (const bullet of state.bullets) {
+          ctx.fillStyle = bullet.owner === 'player' ? '#7ef29a' : '#ff5d6c';
+          ctx.fillRect(bullet.x - bullet.radius, bullet.y - bullet.radius, bullet.radius * 2, bullet.radius * 2);
+        }
+
+        for (const particle of state.particles) {
+          ctx.fillStyle = particle.color;
+          ctx.fillRect(particle.x, particle.y, 3, 3);
+        }
+
+        ctx.restore();
+
+        const uiX = 20;
+        const uiY = 20;
+        ctx.fillStyle = 'rgba(10, 20, 30, 0.7)';
+        ctx.fillRect(uiX, uiY, 230, 90);
+        ctx.strokeStyle = 'rgba(82, 215, 255, 0.35)';
+        ctx.strokeRect(uiX, uiY, 230, 90);
+
+        ctx.fillStyle = '#eaf8ff';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Player: ${player.name}`, uiX + 16, uiY + 30);
+        ctx.fillText(`Status: ${player.alive ? 'Alive' : 'Down'}`, uiX + 16, uiY + 54);
+        ctx.fillText(`Kills: ${player.kills}`, uiX + 16, uiY + 78);
+      }
+
+      function loop(timestamp) {
+        const dt = (timestamp - (state.lastTimestamp || timestamp)) / 1000;
+        state.lastTimestamp = timestamp;
+        update(dt);
+        drawBackground();
+        requestAnimationFrame(loop);
+      }
+
+      document.getElementById('createLobbyBtn').addEventListener('click', createLobby);
+      document.getElementById('joinLobbyBtn').addEventListener('click', joinLobby);
+      document.getElementById('startMatchBtn').addEventListener('click', resetMatch);
+      document.getElementById('toggleVoiceBtn').addEventListener('click', () => {
+        state.voiceEnabled = !state.voiceEnabled;
+        document.getElementById('toggleVoiceBtn').textContent = state.voiceEnabled ? 'Voice Enabled' : 'Toggle Voice Chat';
+        addFeed(state.voiceEnabled ? 'Voice chat enabled. Team channel active.' : 'Voice chat muted. Audio only feedback remains.', 'voice');
+        announce(state.voiceEnabled ? 'Voice chat enabled' : 'Voice chat muted');
+      });
+
+      document.addEventListener('keydown', (event) => {
+        const key = event.key.toLowerCase();
+        if (key === 'w' || key === 'arrowup') input.up = true;
+        if (key === 's' || key === 'arrowdown') input.down = true;
+        if (key === 'a' || key === 'arrowleft') input.left = true;
+        if (key === 'd' || key === 'arrowright') input.right = true;
+        if (key === ' ') {
+          event.preventDefault();
+          fireBullet();
+        }
+        if (key === 'e') {
+          for (const item of state.loot) {
+            const dist = Math.hypot(player.x - item.x, player.y - item.y);
+            if (dist < 24) {
+              if (item.type === 'ammo') player.ammo += 8;
+              if (item.type === 'medkit') player.hp = clamp(player.hp + 18, 0, 100);
+              if (item.type === 'shield') player.shield += 12;
+              item.collected = true;
+              addFeed('Loot collected via quick interaction.', 'loot');
+              announce('Loot collected');
+              playLootTone();
+            }
+          }
+          state.loot = state.loot.filter(item => !item.collected);
+        }
+        if (key === 'm') {
+          nearestDangerPrompt();
+        }
+        if (key === 'q') {
+          const threat = getNearestThreat();
+          if (threat) {
+            announce(`Enemy spotted. ${threat.name} at ${Math.round(Math.hypot(threat.x - player.x, threat.y - player.y))} meters.`);
+          } else {
+            announce('Sector clear. No hostile contact.');
+          }
+        }
+        if (key === 'v') {
+          state.voiceEnabled = !state.voiceEnabled;
+          announce(state.voiceEnabled ? 'Voice chat enabled.' : 'Voice chat muted.');
+          addFeed(state.voiceEnabled ? 'Voice chat enabled. Team link stable.' : 'Voice chat muted.', 'voice');
+        }
+      });
+
+      document.addEventListener('keyup', (event) => {
+        const key = event.key.toLowerCase();
+        if (key === 'w' || key === 'arrowup') input.up = false;
+        if (key === 's' || key === 'arrowdown') input.down = false;
+        if (key === 'a' || key === 'arrowleft') input.left = false;
+        if (key === 'd' || key === 'arrowright') input.right = false;
+      });
+
+      document.getElementById('playerName').addEventListener('input', (event) => {
+        player.name = event.target.value.trim() || 'Viper';
+      });
+
+      updateHUD();
+      addFeed('System online. Audio HUD ready. Lobby available.', 'system');
+      announce('EchoDrop system online. Lobby ready.');
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>
